@@ -1,0 +1,28 @@
+Install-Module MSOnline
+Connect-MsolService
+
+$OutputFilename = "E:\デスクトップ\test.csv"
+$Datas = @()
+
+(Get-MsolUser -All) | %{
+    Write-Host $_.UserPrincipalName
+    $obj = New-Object PSObject | Select-Object UserName, ServicePlan, ProvisioningStatus
+
+    $j = Get-MsolUser -UserPrincipalName $_.UserPrincipalName | select -ExpandProperty Licenses | select -ExpandProperty ServiceStatus
+    $licenses = $j.Count
+    for($i=0; $i -lt $licenses;$i++){
+        if($j[$i].ServicePlan.ServiceName -eq "TEAMS1"){
+            if($j[$i].ProvisioningStatus -eq "Disabled"){
+                $obj.UserName = $_.UserPrincipalName
+                $obj.ServicePlan = $j[$i].ServicePlan.ServiceName
+                $obj.ProvisioningStatus = $j[$i].ProvisioningStatus
+
+                $obj | ft -AutoSize
+                $Datas += $obj
+            } 
+        }
+    }
+}
+Write-Output "##########　結果　##########"
+$Datas | ft -AutoSize
+$Datas | Export-Csv $OutputFilename -Encoding Default -NoTypeInformation
